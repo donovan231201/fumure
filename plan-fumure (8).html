@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prévisionnel Fumure — Prairies</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #f5f5f3; color: #1a1a1a; padding: 1.5rem; }
+.container { max-width: 920px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.topbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: .75rem; border-bottom: 1px solid #e5e5e2; margin-bottom: 1.25rem; }
+.topbar h1 { font-size: 18px; font-weight: 600; flex: 1; min-width: 180px; }
+.year-select { font-size: 14px; font-weight: 600; padding: 5px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; color: #1a1a1a; }
+.btn-new-year { font-size: 13px; padding: 5px 14px; border-radius: 8px; border: 1px solid #4285f4; background: #e8f0fe; color: #1a56db; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.btn-new-year:hover { background: #d2e3fc; }
+.btn-pdf { font-size: 13px; padding: 5px 14px; border-radius: 8px; border: 1px solid #16a34a; background: #dcfce7; color: #15803d; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.btn-pdf:hover { background: #bbf7d0; }
+.save-status { font-size: 12px; color: #888; white-space: nowrap; }
+.save-status.saving { color: #b45309; }
+.save-status.saved { color: #1a8a4a; }
+.save-status.error { color: #c0392b; }
+.navtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; align-items: center; }
+.tab { padding: 6px 13px; border: 1px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; color: #666; }
+.tab.active { background: #e8f0fe; border-color: #4285f4; color: #1a56db; font-weight: 600; }
+.tab.settings { margin-left: auto; border-color: #e5e5e2; color: #888; }
+.tab.settings.active { background: #f5f5f3; border-color: #aaa; color: #333; }
+.loading { text-align: center; padding: 3rem; color: #888; font-size: 15px; }
+.stitle { font-size: 11px; font-weight: 600; color: #888; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+@media(max-width:600px){ .grid4{grid-template-columns:1fr 1fr;} }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 11px; color: #888; }
+.field input, .field select { font-size: 13px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a1a; width: 100%; }
+.mcard { background: #f5f5f3; border-radius: 8px; padding: 10px 12px; text-align: center; }
+.mcard .lbl { font-size: 11px; color: #888; margin-bottom: 4px; }
+.mcard input { font-size: 20px; font-weight: 600; border: none; border-bottom: 1px dashed #ccc; background: transparent; text-align: center; width: 90px; outline: none; padding: 0; color: #1a1a1a; }
+.mcard .hint { font-size: 10px; color: #aaa; margin-top: 3px; }
+.cn { color: #1a8a4a; } .cp { color: #b45309; } .ck { color: #1a56db; } .cr { color: #c0392b; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; margin-bottom: 8px; }
+thead th { padding: 7px 5px; text-align: left; font-weight: 600; font-size: 11px; color: #888; border-bottom: 1px solid #ddd; }
+tbody td { padding: 6px 4px; border-bottom: 1px solid #f0f0ee; vertical-align: middle; }
+table input, table select { font-size: 12px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 6px; background: #fff; color: #1a1a1a; width: 100%; }
+.btn-del { padding: 3px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; color: #c0392b; border: 1px solid #f5c6cb; background: transparent; }
+.btn-add { font-size: 13px; padding: 6px 16px; cursor: pointer; border-radius: 8px; border: 1px solid #ddd; background: #fff; color: #333; margin-bottom: 1.25rem; }
+.btn-add:hover { background: #f5f5f3; }
+.bilan { background: #f5f5f3; border-radius: 12px; padding: 14px 16px; margin-top: .5rem; }
+.totline { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.totbox { flex:1; min-width:80px; background:#fff; border-radius:8px; padding:8px 10px; text-align:center; border:1px solid #e5e5e2; }
+.totbox .lbl { font-size:10px; color:#888; margin-bottom:3px; }
+.totbox .val { font-size:16px; font-weight:600; }
+.total-final { display: flex; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0dc; flex-wrap: wrap; }
+.tf-item { flex:1; min-width:80px; text-align:center; }
+.tf-item .lbl { font-size: 10px; color: #888; margin-bottom: 3px; }
+.tf-item .val { font-size: 16px; font-weight: 600; }
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+@media(max-width:580px){ .settings-grid{grid-template-columns:1fr;} }
+.settings-card { background: #f9f9f7; border: 1px solid #e5e5e2; border-radius: 10px; padding: 14px 16px; }
+.settings-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #333; }
+.settings-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.settings-row label { min-width: 110px; color: #888; font-size: 12px; }
+.settings-row input { flex: 1; font-size: 13px; padding: 5px 8px; border: 1px solid #ddd; border-radius: 7px; background: #fff; color: #1a1a1a; }
+.npk-row { display: grid; grid-template-columns: 1fr 60px 60px 60px 80px; gap: 6px; align-items: center; margin-bottom: 6px; }
+.npk-row .name { color: #555; font-size: 12px; }
+.npk-row input { font-size: 12px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 6px; text-align: center; background: #fff; color: #1a1a1a; width: 100%; }
+.npk-head { display: grid; grid-template-columns: 1fr 60px 60px 60px 80px; gap: 6px; font-size: 10px; font-weight: 600; color: #aaa; text-transform: uppercase; margin-bottom: 6px; }
+#print-area { display: none; }
+@media print {
+  body { background: #fff; padding: 0; font-size: 11px; }
+  .container { box-shadow: none; }
+  .topbar, .navtabs, #content { display: none !important; }
+  #print-area { display: block !important; }
+  .p-header { margin-bottom: 16px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+  .p-header h2 { font-size: 16px; font-weight: 700; }
+  .p-header p { font-size: 11px; color: #666; margin-top: 3px; }
+  .p-parcelle { page-break-inside: avoid; margin-bottom: 24px; border: 1px solid #ddd; border-radius: 6px; padding: 12px; }
+  .p-parcelle h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+  .p-meta { display: flex; gap: 16px; margin-bottom: 10px; font-size: 11px; color: #555; flex-wrap: wrap; }
+  .p-meta span b { color: #1a1a1a; }
+  .p-section { font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .05em; margin: 8px 0 4px; }
+  .p-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px; }
+  .p-table th { padding: 4px 5px; text-align: left; font-size: 10px; color: #888; border-bottom: 1px solid #ddd; }
+  .p-table td { padding: 4px 5px; border-bottom: 1px solid #f0f0ee; }
+  .p-bilan { background: #f5f5f3; border-radius: 6px; padding: 10px 12px; margin-top: 8px; }
+  .p-bilan-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .p-bilan-item { flex: 1; min-width: 80px; text-align: center; }
+  .p-bilan-item .lbl { font-size: 9px; color: #888; }
+  .p-bilan-item .val { font-size: 14px; font-weight: 700; }
+  .cn{color:#1a8a4a;} .cp{color:#b45309;} .ck{color:#1a56db;} .cr{color:#c0392b;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <h1>Prévisionnel fumure — Prairies</h1>
+    <select id="yearSel" class="year-select" onchange="switchYear(this.value)"></select>
+    <button class="btn-new-year" onclick="newYear()">+ Nouvelle année</button>
+    <button class="btn-pdf" onclick="exportPDF()">⬇ Exporter PDF</button>
+    <span class="save-status" id="saveStatus">Chargement...</span>
+  </div>
+  <div class="navtabs" id="navtabs"></div>
+  <div id="content"><div class="loading">Chargement des données...</div></div>
+</div>
+<div id="print-area"></div>
+
+<script>
+// ── Supabase ──────────────────────────────────────────────────────────
+const SB_URL  = "https://znqtspohrzcshupkrpys.supabase.co";
+const SB_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpucXRzcG9ocnpjc2h1cGtycHlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDI2NTUsImV4cCI6MjA5MDcxODY1NX0.4I-Qi7TaEzcg_jKJyveFDXcdnLCHVkePzit4PgkI8kA";
+const HEADERS = { "Content-Type": "application/json", "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
+
+async function dbLoad() {
+  const res = await fetch(`${SB_URL}/rest/v1/fumure?id=eq.main&select=data`, { headers: HEADERS });
+  const rows = await res.json();
+  return rows.length > 0 ? rows[0].data : null;
+}
+async function dbSave(payload) {
+  await fetch(`${SB_URL}/rest/v1/fumure`, {
+    method: "POST",
+    headers: { ...HEADERS, "Prefer": "resolution=merge-duplicates" },
+    body: JSON.stringify({ id: "main", data: payload })
+  });
+}
+
+// ── état ──────────────────────────────────────────────────────────────
+let ORG = {
+  "Fumier bovin": {u:"t/ha",  N:5.5, P:3.5, K:7.0},
+  "Lisier bovin": {u:"m³/ha", N:3.5, P:1.5, K:3.5},
+};
+let MIN = {
+  "Urée 46":   {u:"kg/ha", N:0.46,  P:0, K:0},
+  "Ammo 33,5": {u:"kg/ha", N:0.335, P:0, K:0},
+  "Ammo 27":   {u:"kg/ha", N:0.27,  P:0, K:0},
+};
+let PARCELLES = ["Colette pâturage","Fauche","Paddock VL","Gourfaleur","Candela"];
+const TYPES_INIT = ["paturage","fauche","paturage","fauche","fauche"];
+const today = new Date().toISOString().split("T")[0];
+let nid = 200;
+let years = [];
+let activeYear = new Date().getFullYear();
+let curTab = 0;
+let saveTimer = null;
+
+// ── sauvegarde auto (débounce 1s) ─────────────────────────────────────
+function triggerSave() {
+  setStatus("saving", "Enregistrement...");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      await dbSave({ ORG, MIN, PARCELLES, years });
+      setStatus("saved", "✓ Enregistré");
+      setTimeout(() => setStatus("", ""), 2000);
+    } catch(e) {
+      setStatus("error", "Erreur de sauvegarde");
+    }
+  }, 1000);
+}
+function setStatus(cls, msg) {
+  const el = document.getElementById("saveStatus");
+  el.className = "save-status" + (cls ? " " + cls : "");
+  el.textContent = msg;
+}
+
+// ── init ──────────────────────────────────────────────────────────────
+function makeParcelleData(nom, type) {
+  return { nom, surface:"", type, rdt:"", legu:"0", bN:"", bP:"", bK:"",
+    org:[{id:nid++, date:today, produit:Object.keys(ORG)[0], dose:""}],
+    min:[{id:nid++, date:today, produit:Object.keys(MIN)[0], dose:""}] };
+}
+function makeYearData(year) {
+  return { year, parcelles: PARCELLES.map((n,i) => makeParcelleData(n, TYPES_INIT[i])) };
+}
+function initDefault() {
+  years = [ makeYearData(2025) ];
+  const cy = new Date().getFullYear();
+  if (cy !== 2025) years.push(makeYearData(cy));
+  activeYear = cy;
+}
+
+async function init() {
+  try {
+    const saved = await dbLoad();
+    if (saved) {
+      ORG       = saved.ORG       || ORG;
+      MIN       = saved.MIN       || MIN;
+      PARCELLES = saved.PARCELLES || PARCELLES;
+      years     = saved.years     || [];
+      // Rehydrate nid pour éviter les collisions d'id
+      years.forEach(yd => yd.parcelles.forEach(p => {
+        [...p.org, ...p.min].forEach(r => { if (r.id >= nid) nid = r.id + 1; });
+      }));
+      if (years.length === 0) initDefault();
+      activeYear = years[years.length - 1].year;
+    } else {
+      initDefault();
+    }
+    setStatus("saved", "✓ Données chargées");
+    setTimeout(() => setStatus("", ""), 2000);
+  } catch(e) {
+    initDefault();
+    setStatus("error", "Hors ligne — données locales");
+  }
+  render();
+}
+
+// ── helpers calcul ────────────────────────────────────────────────────
+function getYearData(y) { return years.find(d => d.year === y); }
+function autoB(p) {
+  const r=parseFloat(p.rdt)||0, l=parseFloat(p.legu)||0, c=Math.max(0,1-(l/100)*0.7);
+  return p.type==="fauche"
+    ? {N:Math.round(r*30*c), P:Math.round(r*10), K:Math.round(r*30)}
+    : {N:Math.round(r*25*c), P:Math.round(r*8),  K:Math.round(r*25)};
+}
+function getB(p) { const a=autoB(p); return {N:p.bN!==""?+(p.bN)||0:a.N, P:p.bP!==""?+(p.bP)||0:a.P, K:p.bK!==""?+(p.bK)||0:a.K}; }
+function calcRow(ref,row) { const d=parseFloat(row.dose)||0,pr=ref[row.produit]; return {N:+(d*pr.N).toFixed(1),P:+(d*(pr.P||0)).toFixed(1),K:+(d*(pr.K||0)).toFixed(1)}; }
+function totRows(ref,ls) { return ls.reduce((a,r)=>{const n=calcRow(ref,r);return{N:+(a.N+n.N).toFixed(1),P:+(a.P+n.P).toFixed(1),K:+(a.K+n.K).toFixed(1)};},{N:0,P:0,K:0}); }
+function fmt(v) { return v===0?"0":v; }
+
+// ── rendu ─────────────────────────────────────────────────────────────
+function renderYearSel() {
+  document.getElementById("yearSel").innerHTML = years.map(d =>
+    `<option value="${d.year}"${d.year===activeYear?" selected":""}>${d.year}</option>`).join("");
+}
+function renderNavTabs() {
+  const yd = getYearData(activeYear);
+  let html = yd.parcelles.map((p,i) =>
+    `<button class="tab${curTab===i?" active":""}" onclick="setTab(${i})">${p.nom}</button>`).join("");
+  html += `<button class="tab settings${curTab===-1?" active":""}" onclick="setTab(-1)">⚙ Paramètres</button>`;
+  document.getElementById("navtabs").innerHTML = html;
+}
+function makeTable(ref, ls, addFn, delFn, updFn) {
+  const rows = ls.map(r => {
+    const n = calcRow(ref,r);
+    const opts = Object.keys(ref).map(k=>`<option${k===r.produit?" selected":""}>${k}</option>`).join("");
+    return `<tr>
+      <td style="width:108px"><input type="date" value="${r.date}" onchange="${updFn}(${r.id},'date',this.value)"></td>
+      <td style="width:132px"><select onchange="${updFn}(${r.id},'produit',this.value)">${opts}</select></td>
+      <td style="width:88px">
+        <input type="number" value="${r.dose}" min="0" step="0.5" placeholder="0" oninput="${updFn}(${r.id},'dose',this.value)">
+        <div style="font-size:10px;color:#aaa">${ref[r.produit].u}</div>
+      </td>
+      <td class="cn" style="width:52px;text-align:right">${n.N}</td>
+      <td class="cp" style="width:52px;text-align:right">${n.P}</td>
+      <td class="ck" style="width:52px;text-align:right">${n.K}</td>
+      <td style="width:30px;text-align:center">${ls.length>1?`<button class="btn-del" onclick="${delFn}(${r.id})">✕</button>`:""}</td>
+    </tr>`;
+  }).join("");
+  return `<table>
+    <thead><tr><th>Date</th><th>Produit</th><th>Dose</th><th style="text-align:right">N</th><th style="text-align:right">P₂O₅</th><th style="text-align:right">K₂O</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <button class="btn-add" onclick="${addFn}()">+ Ajouter un passage</button>`;
+}
+function renderParcelle() {
+  const p = getYearData(activeYear).parcelles[curTab];
+  const a=autoB(p), b=getB(p), to=totRows(ORG,p.org), tm=totRows(MIN,p.min);
+  const nTotal=+(to.N+tm.N).toFixed(1), pTotal=+(to.P+tm.P).toFixed(1), kTotal=+(to.K+tm.K).toFixed(1);
+  const nRest=+(b.N-to.N).toFixed(1);
+  document.getElementById("content").innerHTML=`
+    <div class="stitle">Parcelle</div>
+    <div class="grid4" style="margin-bottom:1.5rem">
+      <div class="field"><label>Nom</label><input type="text" value="${p.nom}" oninput="setF('nom',this.value)"></div>
+      <div class="field"><label>Surface (ha)</label><input type="number" value="${p.surface}" min="0" step="0.1" placeholder="0" oninput="setF('surface',this.value)"></div>
+      <div class="field"><label>Type</label>
+        <select onchange="setF('type',this.value)">
+          <option value="fauche"${p.type==="fauche"?" selected":""}>Fauche</option>
+          <option value="paturage"${p.type==="paturage"?" selected":""}>Pâturage</option>
+        </select>
+      </div>
+      <div class="field"><label>Rendement (t MS/ha)</label><input type="number" value="${p.rdt}" min="0" step="0.5" placeholder="ex: 8" oninput="setF('rdt',this.value)"></div>
+    </div>
+    <div class="stitle">Besoins de la culture (kg/ha) — auto-calculés · modifiables</div>
+    <div class="grid4" style="margin-bottom:1.5rem">
+      <div class="field"><label>% Légumineuses</label><input type="number" value="${p.legu}" min="0" max="100" step="5" placeholder="0" oninput="setF('legu',this.value)"></div>
+      <div class="mcard"><div class="lbl">Besoin N</div><input class="cn" type="number" min="0" value="${p.bN!==""?p.bN:a.N}" placeholder="${a.N}" oninput="setF('bN',this.value)"><div class="hint">auto : ${a.N}</div></div>
+      <div class="mcard"><div class="lbl">Besoin P₂O₅</div><input class="cp" type="number" min="0" value="${p.bP!==""?p.bP:a.P}" placeholder="${a.P}" oninput="setF('bP',this.value)"><div class="hint">auto : ${a.P}</div></div>
+      <div class="mcard"><div class="lbl">Besoin K₂O</div><input class="ck" type="number" min="0" value="${p.bK!==""?p.bK:a.K}" placeholder="${a.K}" oninput="setF('bK',this.value)"><div class="hint">auto : ${a.K}</div></div>
+    </div>
+    <div class="stitle">Apports organiques</div>
+    ${makeTable(ORG, p.org, 'addOrg', 'delOrg', 'updOrg')}
+    <div class="stitle" style="margin-top:.5rem">Apports minéraux</div>
+    ${makeTable(MIN, p.min, 'addMin', 'delMin', 'updMin')}
+    <div class="bilan">
+      <div class="stitle">Bilan NPK total</div>
+      <div class="totline">
+        <div class="totbox"><div class="lbl">N restant après orga</div><div class="val ${nRest>0?"cr":"cn"}">${fmt(nRest)} kg/ha</div></div>
+        <div class="totbox"><div class="lbl">N minéral total</div><div class="val cn">${fmt(tm.N)} kg/ha</div></div>
+      </div>
+      <div class="total-final">
+        <div class="tf-item"><div class="lbl">N TOTAL apporté</div><div class="val cn">${fmt(nTotal)} kg/ha</div></div>
+        <div class="tf-item"><div class="lbl">P TOTAL apporté</div><div class="val cp">${fmt(pTotal)} kg/ha</div></div>
+        <div class="tf-item"><div class="lbl">K TOTAL apporté</div><div class="val ck">${fmt(kTotal)} kg/ha</div></div>
+        <div class="tf-item"><div class="lbl">Couverture N</div><div class="val ${b.N>0?(nTotal/b.N>=0.9?"cn":"cr"):"cn"}">${b.N>0?Math.round(nTotal/b.N*100):0} %</div></div>
+      </div>
+    </div>`;
+}
+function renderSettings() {
+  const parcRowsHTML = PARCELLES.map((n,i)=>`
+    <div class="settings-row"><label>Parcelle ${i+1}</label><input type="text" value="${n}" oninput="renameParcelle(${i},this.value)"></div>`).join("");
+  const orgHead=`<div class="npk-head"><span>Produit</span><span>N</span><span>P</span><span>K</span><span>Unité</span></div>`;
+  const orgRows=Object.entries(ORG).map(([k,v])=>`
+    <div class="npk-row"><span class="name">${k}</span>
+      <input type="number" value="${v.N}" step="0.1" min="0" oninput="updateRef('ORG','${k}','N',this.value)">
+      <input type="number" value="${v.P}" step="0.1" min="0" oninput="updateRef('ORG','${k}','P',this.value)">
+      <input type="number" value="${v.K}" step="0.1" min="0" oninput="updateRef('ORG','${k}','K',this.value)">
+      <span style="font-size:11px;color:#aaa">${v.u}</span></div>`).join("");
+  const minHead=`<div class="npk-head"><span>Produit</span><span>N</span><span>P</span><span>K</span><span>Unité</span></div>`;
+  const minRows=Object.entries(MIN).map(([k,v])=>`
+    <div class="npk-row"><span class="name">${k}</span>
+      <input type="number" value="${v.N}" step="0.001" min="0" oninput="updateRef('MIN','${k}','N',this.value)">
+      <input type="number" value="${v.P}" step="0.001" min="0" oninput="updateRef('MIN','${k}','P',this.value)">
+      <input type="number" value="${v.K}" step="0.001" min="0" oninput="updateRef('MIN','${k}','K',this.value)">
+      <span style="font-size:11px;color:#aaa">${v.u}</span></div>`).join("");
+  document.getElementById("content").innerHTML=`
+    <div class="settings-grid">
+      <div class="settings-card"><h3>Noms des parcelles</h3>${parcRowsHTML}
+        <p style="font-size:11px;color:#aaa;margin-top:8px">Les noms se mettent à jour dans tous les onglets.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="settings-card"><h3>Valeurs NPK — Apports organiques <span style="font-size:10px;color:#aaa;font-weight:400">(kg par unité)</span></h3>${orgHead}${orgRows}</div>
+        <div class="settings-card"><h3>Valeurs NPK — Engrais minéraux <span style="font-size:10px;color:#aaa;font-weight:400">(kg N par kg produit)</span></h3>${minHead}${minRows}</div>
+      </div>
+    </div>`;
+}
+
+// ── PDF ───────────────────────────────────────────────────────────────
+function exportPDF() {
+  const yd = getYearData(activeYear);
+  let html=`<div class="p-header"><h2>Plan de fumure — Prairies — ${yd.year}</h2><p>Généré le ${new Date().toLocaleDateString('fr-FR')}</p></div>`;
+  yd.parcelles.forEach(p=>{
+    const a=autoB(p),b=getB(p),to=totRows(ORG,p.org),tm=totRows(MIN,p.min);
+    const nTotal=+(to.N+tm.N).toFixed(1),pTotal=+(to.P+tm.P).toFixed(1),kTotal=+(to.K+tm.K).toFixed(1);
+    const nRest=+(b.N-to.N).toFixed(1),couv=b.N>0?Math.round(nTotal/b.N*100):0;
+    const orgRows=p.org.map(r=>{const n=calcRow(ORG,r);return`<tr><td>${r.date}</td><td>${r.produit}</td><td>${r.dose||"—"} ${ORG[r.produit].u}</td><td class="cn" style="text-align:right">${n.N}</td><td class="cp" style="text-align:right">${n.P}</td><td class="ck" style="text-align:right">${n.K}</td></tr>`;}).join("");
+    const minRows=p.min.map(r=>{const n=calcRow(MIN,r);return`<tr><td>${r.date}</td><td>${r.produit}</td><td>${r.dose||"—"} ${MIN[r.produit].u}</td><td class="cn" style="text-align:right">${n.N}</td><td style="text-align:right">—</td><td style="text-align:right">—</td></tr>`;}).join("");
+    html+=`<div class="p-parcelle"><h3>${p.nom}</h3>
+      <div class="p-meta">
+        <span>Type : <b>${p.type==="fauche"?"Fauche":"Pâturage"}</b></span>
+        ${p.surface?`<span>Surface : <b>${p.surface} ha</b></span>`:""}
+        ${p.rdt?`<span>Rendement : <b>${p.rdt} t MS/ha</b></span>`:""}
+        ${parseFloat(p.legu)>0?`<span>Légumineuses : <b>${p.legu}%</b></span>`:""}
+        <span>Besoin N : <b class="cn">${b.N} kg/ha</b></span>
+        <span>Besoin P : <b class="cp">${b.P} kg/ha</b></span>
+        <span>Besoin K : <b class="ck">${b.K} kg/ha</b></span>
+      </div>
+      <div class="p-section">Apports organiques</div>
+      <table class="p-table"><thead><tr><th>Date</th><th>Produit</th><th>Dose</th><th style="text-align:right">N kg/ha</th><th style="text-align:right">P kg/ha</th><th style="text-align:right">K kg/ha</th></tr></thead><tbody>${orgRows}</tbody></table>
+      <div class="p-section">Apports minéraux</div>
+      <table class="p-table"><thead><tr><th>Date</th><th>Produit</th><th>Dose</th><th style="text-align:right">N kg/ha</th><th style="text-align:right">P kg/ha</th><th style="text-align:right">K kg/ha</th></tr></thead><tbody>${minRows}</tbody></table>
+      <div class="p-bilan"><div class="p-bilan-row">
+        <div class="p-bilan-item"><div class="lbl">N TOTAL</div><div class="val cn">${fmt(nTotal)} kg/ha</div></div>
+        <div class="p-bilan-item"><div class="lbl">P TOTAL</div><div class="val cp">${fmt(pTotal)} kg/ha</div></div>
+        <div class="p-bilan-item"><div class="lbl">K TOTAL</div><div class="val ck">${fmt(kTotal)} kg/ha</div></div>
+        <div class="p-bilan-item"><div class="lbl">N restant</div><div class="val ${nRest>0?"cr":"cn"}">${fmt(nRest)} kg/ha</div></div>
+        <div class="p-bilan-item"><div class="lbl">Couverture N</div><div class="val ${couv>=90?"cn":"cr"}">${couv} %</div></div>
+      </div></div></div>`;
+  });
+  document.getElementById("print-area").innerHTML=html;
+  window.print();
+}
+
+// ── actions ───────────────────────────────────────────────────────────
+function render() { renderYearSel(); renderNavTabs(); if(curTab===-1) renderSettings(); else renderParcelle(); }
+function setTab(i) { curTab=i; render(); }
+function switchYear(y) { activeYear=parseInt(y); curTab=0; render(); }
+function newYear() {
+  const last=years[years.length-1].year, next=last+1;
+  if(years.find(d=>d.year===next)) return;
+  const prev=getYearData(last);
+  const nd={year:next, parcelles:prev.parcelles.map(p=>makeParcelleData(p.nom,p.type))};
+  nd.parcelles.forEach((np,i)=>{ np.surface=prev.parcelles[i].surface; np.rdt=prev.parcelles[i].rdt; np.legu=prev.parcelles[i].legu; });
+  years.push(nd); activeYear=next; curTab=0; render(); triggerSave();
+}
+function setF(f,v) {
+  const p=getYearData(activeYear).parcelles[curTab]; p[f]=v;
+  if(f==="nom"){PARCELLES[curTab]=v; renderNavTabs();} else renderParcelle();
+  triggerSave();
+}
+function renameParcelle(i,v) { PARCELLES[i]=v; years.forEach(yd=>{if(yd.parcelles[i])yd.parcelles[i].nom=v;}); renderNavTabs(); triggerSave(); }
+function updateRef(which,key,field,val) { const ref=which==="ORG"?ORG:MIN; ref[key][field]=parseFloat(val)||0; triggerSave(); }
+function addOrg() { const p=getYearData(activeYear).parcelles[curTab]; p.org.push({id:nid++,date:today,produit:Object.keys(ORG)[0],dose:""}); renderParcelle(); triggerSave(); }
+function delOrg(id) { const p=getYearData(activeYear).parcelles[curTab]; p.org=p.org.filter(r=>r.id!==id); renderParcelle(); triggerSave(); }
+function updOrg(id,f,v) { const r=getYearData(activeYear).parcelles[curTab].org.find(r=>r.id===id); if(r){r[f]=v;} renderParcelle(); triggerSave(); }
+function addMin() { const p=getYearData(activeYear).parcelles[curTab]; p.min.push({id:nid++,date:today,produit:Object.keys(MIN)[0],dose:""}); renderParcelle(); triggerSave(); }
+function delMin(id) { const p=getYearData(activeYear).parcelles[curTab]; p.min=p.min.filter(r=>r.id!==id); renderParcelle(); triggerSave(); }
+function updMin(id,f,v) { const r=getYearData(activeYear).parcelles[curTab].min.find(r=>r.id===id); if(r){r[f]=v;} renderParcelle(); triggerSave(); }
+
+// ── démarrage ─────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
